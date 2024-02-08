@@ -1,0 +1,232 @@
+---
+title: "tidyTornado"
+author: "Molly Kuhs"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## packages
+
+```{r}
+library(tidyverse)
+library(ggtext)
+library(mapdata)
+library(usmap)
+library(patchwork)
+
+```
+
+## data
+```{r}
+
+tornados <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-05-16/tornados.csv')
+
+stateData <- map_data("state")
+
+theme_set(theme_minimal(
+  base_size = 9,
+  base_family = "Open Sans"
+))
+
+caption <- "\nData: 2023 NOAA's National Weather Service Storm Prediction Center"
+
+```
+
+#US Map
+```{r}
+subTornados <- tornados %>%
+  filter(st != "HI" | st != "AK" | st!= "VI"| st != "PR")%>%
+  filter(slat > 24)%>%
+  filter(slon > -135)%>%
+  filter(yr <= 2020)%>%
+  filter(yr >= 1960)
+
+title <- "\nTornado Frequency from 1960 to 2020"
+subtitle <- "cumulative tornado counts across the United States with highest frequency areas displayed in red"
+
+p1<- ggplot()+
+  geom_polygon(aes(x=long, y=lat, group=group), data = stateData, fill = NA, color = "black", linewidth = 0.45)+
+  coord_fixed(ratio = 1.3) +
+  geom_density2d_filled(aes(x=slon, y=slat), data = subTornados,
+                        alpha = 0.75,
+                        show.legend = F,
+                        bins =7)+
+  geom_curve(aes(x = -95, xend = -115, y = 45, yend = 40),
+              arrow = arrow(length = unit(0.03, "npc"), 
+                            type="closed"),
+                            color = "grey20")+
+  scale_fill_manual(values = c("white","#83c3ae", "#bee4d4", "#ece2a3", "#e9ba74", "#e78d48", "#ba4b43"))+
+  theme(line = element_blank(),
+        axis.text = element_blank(),
+        panel.background = element_rect(fill=NA, color = NA),
+        plot.background = element_rect(fill=NA, color = NA),
+        plot.margin = unit(c(0,0,0,0), 'cm'),
+        plot.title = element_text(
+                              face = "bold",
+                              color = "grey20",
+                              size = 18,
+                              lineheight = 1,
+                              hjust  =0.5),
+            plot.subtitle = element_text(size = 9,
+                                    color = "grey20",
+                                    lineheight = 1,
+                                    hjust = 0.5))+
+  labs(title = title,
+       subtitle = subtitle,
+       y = "",
+       x = "")
+
+p1
+```
+
+# MN area map
+```{r}
+
+subMN <- tornados %>%
+  filter(st == "MN")%>%
+  filter(yr <= 2020)%>%
+  filter(yr >= 1960)
+
+stateMN <- stateData %>%
+  filter(region == "minnesota")
+
+p2<- ggplot()+
+  coord_fixed(ratio = 1.3) +
+  geom_density2d_filled(aes(x=slon, y=slat), data = subMN,
+                        alpha = 0.75,
+                        show.legend = F,
+                        bins =6)+
+  geom_polygon(aes(x=long, y=lat, group=group), data = stateMN, fill = NA, color = "grey45", linewidth = 0.5)+
+  scale_fill_manual(values = c("white","#83c3ae", "#bee4d4", "#ece2a3", "#e9ba74", "#ba4b43"))+
+  theme(line = element_blank(),
+        axis.text = element_blank(),
+        panel.background = element_rect(fill='transparent', color = NA),
+        plot.background = element_rect(fill='transparent', color = NA),
+        plot.margin = unit(c(0,0,0,0), 'cm'),
+        plot.caption = element_text(size = 9,
+                                    color = "grey20",
+                                    face = "bold",
+                                    hjust = 0.4,
+                                    vjust = 8))+
+  labs(x = "",
+       y = "",
+       caption = "Within MN Frequencies")
+
+p2
+
+
+```
+
+
+# MN freq. map
+```{r, warning=F}
+mnTornados <- tornados %>%
+  filter(st == "MN", !is.na(mag)) %>%
+  filter(yr < 2020)%>%
+  filter(yr >= 1960) %>%
+  mutate(yearBlock = case_when(yr >= 1960 & yr < 1980 ~ "1960 - 1979",
+                               yr >= 1980 & yr < 2000 ~ "1980 - 1999",
+                               yr >= 2000 & yr < 2020 ~ "2000 - 2019"))
+
+title2 <- "Tornadoes Have Increased In Frequency Over The Past 60 Years In MN\n"
+subtitle2<- "points below represent the starting location of each reported tornado in the 20 year range"
+
+p3<- ggplot(mnTornados) +
+  coord_fixed(ratio = 1.4) +
+  geom_point(aes(x=slon, y=slat), color = "#83c3ae", size = 1.2, alpha=0.5)+
+  geom_polygon(aes(x=long, y=lat, group=group), data = state_info %>% 
+                 filter(region == "minnesota"), fill = NA, color = "#637370", linewidth = 0.8)+
+  facet_wrap(~yearBlock,
+             strip.position = "bottom")+
+  theme(line = element_blank(),
+        axis.text = element_blank(),
+        strip.text.x = element_text(colour = '#637370', 
+                                    face = "bold", 
+                                    size = 10,
+                                    hjust = 0.36),
+        plot.title = element_text(hjust = 0.5,
+                                  size = 11,
+                                  face = "bold",
+                                  color = "grey20"),
+        plot.subtitle = element_text(size = 9,
+                                    color = "grey20",
+                                    lineheight = 1,
+                                    hjust = 0.5,
+                                    vjust = 5))+
+  labs(x = "",
+       y="",
+       title = title2,
+       subtitle = subtitle2)
+
+
+p3
+
+```
+
+#OK Tornados Over Time
+```{r}
+yearlyMN <- tornados %>%
+  filter(st == "MN")%>%
+  group_by(yr) %>%
+  count()
+
+p4<- ggplot(yearlyMN, aes(yr, n))+
+  geom_line(color = "#83c3ae", size = 1)+
+  geom_smooth(method = "lm", se = F, color = "#878787", lty = 2, size = 0.5)+
+  annotate("text", x=1954, y = 42, label = "average 15 \ntornadoes", 
+           size = 3, 
+           family = "Open Sans",
+           hjust = 0)+
+  geom_curve(aes(x = 1953, xend = 1953, y = 40, yend = 15),
+              arrow = arrow(length = unit(0.03, "npc"), 
+                            type="closed"),
+                            color = "grey45")+
+  annotate("text", x=2016, y = 81, label = "average 50\ntornadoes", 
+           size = 3, 
+           family = "Open Sans",
+           hjust = 0)+
+  annotate("text", x=1950, y=95, 
+           label = "The annual average number of tornadoes is significantly \nincreasing through time. Every 5 years, we can expect \nan average of 3-4 additional tornadoes per season.",
+           hjust = 0,
+           family = "Open Sans",
+           size = 3)+
+  theme(plot.caption = element_text(size = 6.5,
+                                    color = "grey35",
+                                    hjust = 1))+
+    geom_curve(aes(x = 2015, xend = 2015, y = 78, yend = 55),
+              arrow = arrow(length = unit(0.03, "npc"), 
+                            type="closed"),
+                            color = "grey45")+
+  labs(x = "", 
+       y = "Annual Number of Tornadoes\n",
+       caption = caption)
+p4
+
+#stats
+mod1<- lm(n ~ yr, yearlyMN)
+summary(mod1)
+```
+
+
+```{r panel-save-convert, fig.width = 8, fig.height = 12}
+
+layout <- c(
+  area(t = 1, l = 1, b = 5, r = 9),
+  area(t = 3.5, l = 0, b = 5, r = 3),
+  area(t = 6, l=1, b=8, r = 9),
+  area(t = 9, l = 2, b = 12, r = 8))
+
+p1 +
+  p2 +
+  p3+
+  p4+
+  plot_layout(design = layout)
+
+ggsave("finalTornado.jpeg", width = 8, height = 12)
+
+```
+

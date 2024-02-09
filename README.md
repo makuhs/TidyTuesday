@@ -10,13 +10,6 @@ Follow along on twitter/x: [@molly_kuhs](https://twitter.com/molly_kuhs)
 
 ----------------
 
-<details>
-  <summary>Contributions in chronological order </summary>
-
-<!-- toc -->
 **Challenges 2023**
   - 05/16/2023 [Tornados](https://github.com/makuhs/TidyTuesday/blob/main/finalTornado.jpeg)
 
-<!-- tocstop -->
-
-</details>

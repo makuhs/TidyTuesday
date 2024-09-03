@@ -9,4 +9,5 @@ All figures are created entirly in R (no post-processing) unless noted!
 
 **Challenges 2023**
   - 05/16/2023 [Tornados](https://github.com/makuhs/TidyTuesday/blob/main/Tornado2023/finalTornado.jpeg)
+  - 10/26/2023 [Global Temperature](https://github.com/makuhs/TidyTuesday/blob/main/GlobalTemp2023/finalTemp.jpeg)
 

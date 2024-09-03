@@ -167,7 +167,7 @@ p3
 
 ```
 
-#OK Tornados Over Time
+#MN time series 
 ```{r}
 yearlyMN <- tornados %>%
   filter(st == "MN")%>%

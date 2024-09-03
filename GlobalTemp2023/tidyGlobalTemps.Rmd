@@ -1,0 +1,141 @@
+---
+title: "tidyGlobalTemps"
+author: "Molly Kuhs"
+date: "2023-10-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## packages
+
+```{r warnings = F}
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(ggtext)
+library(patchwork)
+
+```
+
+## data and set up 
+```{r}
+
+theme_set(theme_minimal(
+  base_size = 9,
+  base_family = "Open Sans"
+))
+
+data_source <- "\n2023 - NASA Earth Observatory Goddard Institude for Space Studies GISS Surface Temperature Analysis V4"
+
+global_temps <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-07-11/global_temps.csv')
+
+```
+
+## plot summer (JJA)
+```{r, warning=F}
+tempFilter <- global_temps %>%
+  filter(Year >= 1900)
+####1.2 warmer
+
+tempFilter[124,18] = 1.2
+
+scale <- c(-0.5, 0, 0.25, 0.75)
+
+title <- "\nSUMMER 2023 WARMEST ON RECORD"
+subtitle <- "Global Surface Temperature Anomaly (°C) for June, July, and August\nData shows departure from the global surface temperature average from 1951-1980\n"
+
+p1<- ggplot(tempFilter, aes(Year, JJA, fill = JJA))+
+  geom_col(show.legend = F, color = "white", size = 0.05)+
+  scale_fill_gradientn(colors = c("#3384C6", "white","#e9ba74", "#BF2210", "#731409"),
+                       breaks=scale,
+                       limits = c(-0.5, 1.5))+
+  geom_hline(yintercept = 0, lty = 3, color = "grey50")+
+  scale_x_continuous(breaks=seq(1880,2020,by=20))+
+  ylim(-.55, 1.3)+
+  theme(plot.title = element_text(
+                              face = "bold",
+                              color = "grey25",
+                              size = 22,
+                              lineheight = 1,
+                              hjust  =0.5),
+            plot.subtitle = element_text(size = 9,
+                                    color = "grey25",
+                                    lineheight = 1,
+                                    hjust = 0.5))+
+    labs(
+       x = "",
+       y = "Difference from Average (°C)\n",
+       title = title,
+       subtitle = subtitle)
+  
+```
+```{r}
+#add updated 2023 data: 
+
+tempFilter[124,7] = 1.07
+tempFilter[124,8] = 1.18
+tempFilter[124,9] = 1.19
+tempFilter[124,10] = 1.47
+
+longTemp <- tempFilter %>%
+  pivot_longer(!Year, names_to = "Month", values_to = "avgTemp")
+
+longTemp$Year <- as.numeric(longTemp$Year)
+
+summerTemp <- longTemp %>%
+  filter(Month == "May" | Month == "Jun" | Month == "Jul" | Month == "Aug" | Month == "Sep") 
+
+summerTemp$Month <- factor(summerTemp$Month, levels = c(
+                                                    "May",
+                                                    "Jun",
+                                                    "Jul",
+                                                    "Aug",
+                                                    "Sep"))
+
+new <- summerTemp %>%
+  filter(Year == 2023)
+
+subtitle2 <- "\nWhile monthly average temperatures have been rising steadily since 1980,\nthe temperatures recorded in the summer of 2023 have been the\nHOTTEST EVER RECORDED.\n"
+
+p2<- summerTemp%>%
+  filter(Year > 1979)%>%
+ggplot(., aes(Month, avgTemp))+
+ geom_line(aes(color=Year, group = Year), alpha=0.6, size = 0.5)+
+  scale_color_gradient(low = "#fce48d", high = "#ba4b43",
+                       breaks = c(1980, 2000, 2020),
+                       name = "Year")+
+    annotate("text", x = 5.2, y= 1.47, 
+           label = "2023",
+           color = "#ba4b43",
+           family = "Open Sans",
+           fontface = "bold",
+           size = 3.5)+
+  geom_line(data = new, aes(group = Year), size = 1.2, color = "#ba4b43")+
+  labs(x = "",
+       y= "Difference from Average (°C)\n",
+       subtitle = subtitle2,
+       caption = data_source)+
+  coord_cartesian(clip = "off")+
+  theme(plot.subtitle = element_text(size = 9,
+                                    face = "bold",
+                                    color = "#ba4b43",
+                                    lineheight = 1.3,
+                                    hjust = 0.5),
+        plot.caption = element_text(size = 6.5,
+                                    color = "grey40",
+                                    hjust = 1.8))
+p2
+
+```
+
+```{r}
+p1 + p2 + plot_layout(nrow = 2)
+
+ggsave("finalTemp.jpeg", width = 7, height = 10)
+
+```
+
